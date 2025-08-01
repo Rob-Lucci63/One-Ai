@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی تفنگی - Rob Lucci</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            height: 100vh;
+            overflow: hidden;
+            direction: ltr;
+            user-select: none;
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #startScreen h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        
+        #startScreen p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        #creator {
+            position: absolute;
+            bottom: 20px;
+            color: #ffcc00;
+            font-size: 1em;
+        }
+        
+        #startButton {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 75, 43, 0.4);
+            margin-bottom: 50px;
+        }
+        
+        #startButton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 75, 43, 0.6);
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        
+        #crosshair {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #ff416c;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(255, 65, 108, 0.8);
+            background: radial-gradient(circle, transparent 40%, rgba(255, 65, 108, 0.3) 40%, transparent 60%);
+        }
+        
+        .player {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 70px;
+            z-index: 100;
+        }
+        
+        .player-body {
+            width: 35px;
+            height: 50px;
+            background: #3498db;
+            margin: 0 auto;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .player-head {
+            width: 25px;
+            height: 25px;
+            background: #f1c40f;
+            border-radius: 50%;
+            margin: 0 auto 5px;
+        }
+        
+        .target {
+            position: absolute;
+            border-radius: 50%;
+            cursor: crosshair;
+            transition: transform 0.2s;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        
+        .target:hover {
+            transform: scale(1.1);
+        }
+        
+        .bullet {
+            position: absolute;
+            width: 6px;
+            height: 15px;
+            background: #ffcc00;
+            border-radius: 3px;
+            box-shadow: 0 0 8px yellow;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: white;
+            font-size: 1.1em;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+        
+        #levelIndicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: white;
+            font-size: 1.3em;
+            z-index: 500;
+            background: rgba(255, 65, 108, 0.8);
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 2000;
+            border: 2px solid #ff416c;
+            width: 80%;
+            max-width: 400px;
+        }
+        
+        .level-up {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 1500;
+            font-size: 1.8em;
+            animation: pulse 1s infinite;
+            width: 80%;
+            max-width: 350px;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        button {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            width: 80%;
+            max-width: 200px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #ff9900, #ff416c, transparent);
+            border-radius: 50%;
+            animation: explode 0.6s forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+        
+        /* موبایل */
+        @media (max-width: 768px) {
+            #startScreen h1 {
+                font-size: 2em;
+            }
+            
+            #startScreen p {
+                font-size: 0.9em;
+            }
+            
+            #crosshair {
+                width: 50px;
+                height: 50px;
+                border-width: 4px;
+            }
+            
+            #hud, #levelIndicator {
+                font-size: 0.9em;
+                padding: 10px;
+            }
+            
+            .player {
+                width: 40px;
+                height: 60px;
+            }
+            
+            .player-body {
+                width: 30px;
+                height: 45px;
+            }
+            
+            .player-head {
+                width: 20px;
+                height: 20px;
+            }
+        }
+        
+        /* دکمه شلیک برای موبایل */
+        #shootButton {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #ff416c, #ff0000);
+            border: 3px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2em;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 65, 108, 0.8);
+            z-index: 200;
+        }
+        
+        @media (max-width: 768px) {
+            #shootButton {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>🔫 بازی تفنگی 🔫</h1>
+        <p>هدف‌ها رو شلیک کن و به مرحله بعد برس!<br>روی صفحه کلیک کن یا از دکمه شلیک استفاده کن</p>
+        <button id="startButton">شروع بازی</button>
+        <div id="creator">ساخته شده توسط Rob Lucci</div>
+    </div>
+    
+    <div id="gameContainer">
+        <div id="crosshair"></div>
+        <div class="player">
+            <div class="player-head"></div>
+            <div class="player-body"></div>
+        </div>
+        
+        <div id="hud">
+            <div>امتیاز: <span id="score">0</span></div>
+            <div>تیر: <span id="bullets">50</span></div>
+            <div>هدف‌ها: <span id="targetsHit">0</span>/<span id="targetsNeeded">3</span></div>
+        </div>
+        
+        <div id="levelIndicator">مرحله: <span id="level">1</span></div>
+        
+        <div id="levelUp" class="level-up">
+            🎉 مرحله بعد! 🎉
+        </div>
+        
+        <div id="shootButton">🔫</div>
+        
+        <div id="gameOver">
+            <h2>بازی تموم شد!</h2>
+            <p>امتیاز نهایی: <span id="finalScore">0</span></p>
+            <p>مرحله: <span id="finalLevel">1</span></p>
+            <button onclick="restartGame()">دوباره بازی کن</button>
+        </div>
+    </div>
+
+    <script>
+        // متغیرهای بازی
+        let gameState = {
+            score: 0,
+            bullets: 50,
+            level: 1,
+            targetsHit: 0,
+            targetsNeeded: 3,
+            gameActive: false,
+            targetSpeed: 3000,
+            targetSize: 60,
+            lastShotTime: 0,
+            shotCooldown: 200 // 200ms cooldown
+        };
+        
+        // المنت‌ها
+        const startScreen = document.getElementById('startScreen');
+        const gameContainer = document.getElementById('gameContainer');
+        const crosshair = document.getElementById('crosshair');
+        const scoreElement = document.getElementById('score');
+        const bulletsElement = document.getElementById('bullets');
+        const targetsHitElement = document.getElementById('targetsHit');
+        const targetsNeededElement = document.getElementById('targetsNeeded');
+        const levelElement = document.getElementById('level');
+        const levelIndicator = document.getElementById('levelIndicator');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalLevelElement = document.getElementById('finalLevel');
+        const levelUpElement = document.getElementById('levelUp');
+        const startButton = document.getElementById('startButton');
+        const shootButton = document.getElementById('shootButton');
+        
+        // تشخیص دستگاه
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // شروع بازی
+        startButton.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            gameState.gameActive = true;
+            initGame();
+        });
+        
+        // حرکت دوربین با ماوس یا لمس
+        function handlePointerMove(e) {
+            if (!gameState.gameActive) return;
+            
+            let x, y;
+            if (e.type === 'touchmove') {
+                e.preventDefault();
+                const touch = e.touches[0];
+                x = touch.clientX;
+                y = touch.clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            
+            crosshair.style.left = x + 'px';
+            crosshair.style.top = y + 'px';
+        }
+        
+        // شلیک با کلیک یا لمس
+        function handleShoot(e) {
+            if (!gameState.gameActive) return;
+            
+            const currentTime = Date.now();
+            if (currentTime - gameState.lastShotTime < gameState.shotCooldown) {
+                return; // cooldown
+            }
+            
+            let x, y;
+            if (e.type === 'touchstart') {
+                const touch = e.touches[0] || e.changedTouches[0];
+                x = touch.clientX;
+                y = touch.clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            
+            if (gameState.bullets > 0) {
+                gameState.bullets--;
+                gameState.lastShotTime = currentTime;
+                updateHUD();
+                createBullet(x, y);
+                checkHit(x, y);
+            }
+            
+            if (gameState.bullets <= 0 && gameState.targetsHit < gameState.targetsNeeded) {
+                endGame();
+            }
+            
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
+        }
+        
+        // ایونت‌های ماوس و لمس
+        document.addEventListener('mousemove', handlePointerMove);
+        document.addEventListener('touchmove', handlePointerMove, { passive: false });
+        document.addEventListener('click', handleShoot);
+        document.addEventListener('touchstart', handleShoot, { passive: false });
+        
+        // دکمه شلیک موبایل
+        shootButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = crosshair.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            handleShoot({ clientX: x, clientY: y, type: 'click' });
+        });
+        
+        // ایجاد گلوله
+        function createBullet(x, y) {
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = x + 'px';
+            bullet.style.top = (window.innerHeight - 80) + 'px';
+            
+            gameContainer.appendChild(bullet);
+            
+            // حرکت گلوله به سمت هدف
+            const bulletInterval = setInterval(() => {
+                if (!bullet.parentNode) {
+                    clearInterval(bulletInterval);
+                    return;
+                }
+                
+                const bulletRect = bullet.getBoundingClientRect();
+                const dx = x - (bulletRect.left + bulletRect.width / 2);
+                const dy = y - (bulletRect.top + bulletRect.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 10 || bulletRect.top < 0) {
+                    clearInterval(bulletInterval);
+                    if (bullet.parentNode) {
+                        bullet.parentNode.removeChild(bullet);
+                    }
+                } else {
+                    const speed = 20; // سریع‌تر شده
+                    bullet.style.left = (bulletRect.left + dx / distance * speed) + 'px';
+                    bullet.style.top = (bulletRect.top + dy / distance * speed) + 'px';
+                }
+            }, 16);
+            
+            // حذف گلوله بعد از 1.5 ثانیه
+            setTimeout(() => {
+                clearInterval(bulletInterval);
+                if (bullet.parentNode) {
+                    bullet.parentNode.removeChild(bullet);
+                }
+            }, 1500);
+        }
+        
+        // چک کردن برخورد
+        function checkHit(mouseX, mouseY) {
+            const targetElements = document.querySelectorAll('.target');
+            targetElements.forEach(target => {
+                const rect = target.getBoundingClientRect();
+                const targetX = rect.left + rect.width / 2;
+                const targetY = rect.top + rect.height / 2;
+                
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - targetX, 2) + 
+                    Math.pow(mouseY - targetY, 2)
+                );
+                
+                if (distance < gameState.targetSize / 2) {
+                    // ایجاد انفجار
+                    createExplosion(targetX, targetY);
+                    
+                    // حذف هدف
+                    target.parentNode.removeChild(target);
+                    
+                    // افزایش امتیاز
+                    gameState.score += 15 * gameState.level;
+                    gameState.targetsHit++;
+                    updateHUD();
+                    
+                    // چک کردن پایان مرحله
+                    if (gameState.targetsHit >= gameState.targetsNeeded) {
+                        levelUp();
+                    }
+                }
+            });
+        }
+        
+        // ایجاد انفجار
+        function createExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            gameContainer.appendChild(explosion);
+            
+            setTimeout(() => {
+                if (explosion.parentNode) {
+                    explosion.parentNode.removeChild(explosion);
+                }
+            }, 600);
+        }
+        
+        // ایجاد هدف جدید
+        function createTarget() {
+            if (!gameState.gameActive) return;
+            
+            const target = document.createElement('div');
+            target.className = 'target';
+            
+            // رنگ رندوم برای هدف
+            const colors = ['#ff416c', '#ff9900', '#2ecc71', '#9b59b6', '#3498db', '#e74c3c'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            target.style.background = color;
+            
+            // سایز بر اساس مرحله
+            const size = Math.max(40, gameState.targetSize - (gameState.level * 3));
+            target.style.width = size + 'px';
+            target.style.height = size + 'px';
+            
+            // موقعیت رندوم
+            const x = Math.random() * (window.innerWidth - size);
+            const y = Math.random() * (window.innerHeight - 200) + 50;
+            
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
+            
+            gameContainer.appendChild(target);
+            
+            // حرکت هدف آرام‌تر
+            const moveInterval = setInterval(() => {
+                if (!gameState.gameActive || !target.parentNode) {
+                    clearInterval(moveInterval);
+                    return;
+                }
+                
+                const currentX = parseFloat(target.style.left);
+                const direction = Math.sin(Date.now() / 1000) * 2; // حرکت موجی
+                const newX = currentX + direction;
+                const clampedX = Math.max(0, Math.min(window.innerWidth - parseInt(target.style.width), newX));
+                
+                target.style.left = clampedX + 'px';
+            }, 100);
+            
+            // حذف هدف بعد از مدت زمان مشخص
+            setTimeout(() => {
+                clearInterval(moveInterval);
+                if (target.parentNode) {
+                    target.parentNode.removeChild(target);
+                }
+            }, gameState.targetSpeed);
+            
+            // ایجاد هدف بعدی
+            const nextTargetTime = Math.random() * (2500 - gameState.level * 100) + 1200;
+            setTimeout(createTarget, Math.max(800, nextTargetTime));
+        }
+        
+        // ارتقاء مرحله
+        function levelUp() {
+            levelUpElement.style.display = 'block';
+            setTimeout(() => {
+                levelUpElement.style.display = 'none';
+                
+                gameState.level++;
+                gameState.targetsHit = 0;
+                gameState.targetsNeeded = 3 + Math.floor(gameState.level / 2); // کمتر هدف مورد نیاز
+                gameState.bullets = 50 + (gameState.level * 10); // بیشتر تیر
+                gameState.targetSpeed = Math.max(1500, 3000 - (gameState.level * 150)); // کندتر شدن
+                gameState.targetSize = Math.max(35, 60 - (gameState.level * 2)); // کوچیک‌تر شدن
+                
+                updateHUD();
+                levelElement.textContent = gameState.level;
+                
+                // پاک کردن هدف‌های باقی‌مانده
+                const targets = document.querySelectorAll('.target');
+                targets.forEach(target => target.remove());
+            }, 2000);
+        }
+        
+        // آپدیت HUD
+        function updateHUD() {
+            scoreElement.textContent = gameState.score;
+            bulletsElement.textContent = gameState.bullets;
+            targetsHitElement.textContent = gameState.targetsHit;
+            targetsNeededElement.textContent = gameState.targetsNeeded;
+        }
+        
+        // پایان بازی
+        function endGame() {
+            gameState.gameActive = false;
+            finalScoreElement.textContent = gameState.score;
+            finalLevelElement.textContent = gameState.level;
+            gameOverElement.style.display = 'block';
+        }
+        
+        // شروع مجدد بازی
+        function restartGame() {
+            // پاک کردن همه المان‌ها
+            const targets = document.querySelectorAll('.target');
+            const bullets = document.querySelectorAll('.bullet');
+            const explosions = document.querySelectorAll('.explosion');
+            targets.forEach(target => target.remove());
+            bullets.forEach(bullet => bullet.remove());
+            explosions.forEach(explosion => explosion.remove());
+            
+            // ریست کردن متغیرها
+            gameState = {
+                score: 0,
+                bullets: 50,
+                level: 1,
+                targetsHit: 0,
+                targetsNeeded: 3,
+                gameActive: true,
+                targetSpeed: 3000,
+                targetSize: 60,
+                lastShotTime: 0,
+                shotCooldown: 200
+            };
+            
+            // آپدیت UI
+            updateHUD();
+            levelElement.textContent = gameState.level;
+            gameOverElement.style.display = 'none';
+            
+            // شروع بازی
+            createTarget();
+        }
+        
+        // مقداردهی اولیه بازی
+        function initGame() {
+            updateHUD();
+            createTarget();
+            
+            // افزایش تیرها هر 15 ثانیه (بیشتر تیر)
+            setInterval(() => {
+                if (gameState.gameActive) {
+                    gameState.bullets += 5;
+                    updateHUD();
+                }
+            }, 15000);
+        }
+        
+        // جلوگیری از zoom روی موبایل
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+  </html>
