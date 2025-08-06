@@ -1,129 +1,98 @@
 <!DOCTYPE html><html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Happy Coin - باس فایت سیاه</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Coin - نسخه سخت‌تر</title>
   <style>
-    body { margin: 0; padding: 0; background: #121212; color: #eee; font-family: Tahoma, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; user-select: none; overflow: hidden; }
-    h1 { margin-top: 10px; font-size: 24px; }
-    #battleCanvas { background: #222; border-radius: 10px; margin-top: 20px; touch-action: none; }
-    #hpBar { width: 400px; height: 20px; background: #555; border-radius: 10px; overflow: hidden; margin-top: 10px; }
-    #hpFill { height: 100%; background: #f44; width: 100%; transition: width .3s ease; }
-    #livesDisplay, #winsDisplay, #info { margin-top: 10px; font-size: 16px; user-select: none; }
-    /* افکت دمیج و وین */
-    .effect { position: absolute; font-size: 24px; font-weight: bold; opacity: 1; animation: fadeUp 1s ease-out forwards; pointer-events: none; z-index: 9999; }
-    .damage { color: #f44; }
-    .win { color: #ffd700; font-size: 32px; }
-    @keyframes fadeUp { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -100%) scale(1.5); } }
-    /* دیالوگ پایان */
-    #endDialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; color: #fff; padding: 20px; border-radius: 10px; display: none; text-align: center; z-index: 10000; }
-    #endDialog button { margin-top: 10px; padding: 8px 16px; background: #f44; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
-    /* جوی‌استیک موبایل */
-    #joystickContainer { position: fixed; bottom: 40px; left: 40px; width: 100px; height: 100px; background: #444a; border-radius: 50%; touch-action: none; display: none; z-index: 1000; }
-    #joystickBase { position: relative; width: 100%; height: 100%; border-radius: 50%; background: #666; }
-    #joystickStick { position: absolute; width: 50px; height: 50px; background: #f44; border-radius: 50%; top: 25px; left: 25px; transition: top .1s, left .1s; touch-action: none; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#111; color:#fff; font-family:sans-serif; overflow:hidden; }
+    #player { position:absolute; width:40px; height:40px; background:#f00; border-radius:50%; top:50%; left:50%; transform:translate(-50%,-50%); }
+    .coin { position:absolute; width:30px; height:30px; background:gold; border-radius:50%; cursor:pointer; transition:transform .2s; }
+    .coin:active { transform:scale(0.9); }
+    #info { position:fixed; top:10px; left:10px; font-size:18px; }
   </style>
 </head>
 <body>
-  <h1>باس فایت Happy Coin سیاه</h1>
-  <canvas id="battleCanvas"></canvas>
-  <div id="hpBar"><div id="hpFill"></div></div>
-  <div id="livesDisplay">جان شما: 3</div>
-  <div id="winsDisplay">بردها: 0</div>
-  <div id="info">دور فعلی: حمله هپی کوین سیاه</div>  <div id="endDialog">
-    <div id="endText"></div>
-    <button onclick="resetBattle()">شروع مجدد</button>
-  </div>  <div id="joystickContainer">
-    <div id="joystickBase"><div id="joystickStick"></div></div>
-  </div><script>
-  const canvas = document.getElementById('battleCanvas');
-  const ctx = canvas.getContext('2d');
-  const hpFill = document.getElementById('hpFill');
-  const livesDisplay = document.getElementById('livesDisplay');
-  const winsDisplay = document.getElementById('winsDisplay');
-  const infoDisplay = document.getElementById('info');
-  const endDialog = document.getElementById('endDialog');
-  const endText = document.getElementById('endText');
+  <div id="player"></div>
+  <div id="info">جون: 3 | خنثی‌سازی: 0</div>  <script>
+    const player = document.getElementById('player');
+    const info = document.getElementById('info');
+    let lives = 3;
+    let kills = 0;
+    let canAttack = true;
+    const attackCooldown = 2000; // 2 ثانیه
 
-  function resizeCanvas(){
-    const size = Math.min(window.innerWidth - 40, 400);
-    canvas.width = size;
-    canvas.height = size;
-    document.getElementById('hpBar').style.width = size + 'px';
-  }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
+    // حرکت بازیکن با موس
+    document.addEventListener('mousemove', e => {
+      const x = e.clientX - player.offsetWidth/2;
+      const y = e.clientY - player.offsetHeight/2;
+      player.style.left = x + 'px';
+      player.style.top = y + 'px';
+    });
 
-  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  let playerHeart = { x: 0, y: 0, size: 20 };
-  let coins = [];
-  let bossHP = 56;
-  let playerLives = 3;
-  let damagePerClick = 4;
-  const roundDuration = 15 * 1000;
-  let currentRound = 'enemy';
-  let roundTimer = roundDuration;
-  let lastTimestamp = null;
-  let gameOver = false;
-  let lastClickTime = 0;
-  let wins = parseInt(localStorage.getItem('wins')||'0');
-  winsDisplay.textContent = 'بردها: ' + wins;
+    // تولید سکه (دشمن)
+    function spawnCoin() {
+      const coin = document.createElement('div');
+      coin.classList.add('coin');
+      // شروع تصادفی
+      coin.style.left = Math.random() * (window.innerWidth-30) + 'px';
+      coin.style.top = Math.random() * (window.innerHeight-30) + 'px';
+      document.body.appendChild(coin);
 
-  const joystickContainer = document.getElementById('joystickContainer');
-  const joystickStick = document.getElementById('joystickStick');
-  let joystickActive = false;
-  let joystickStart = { x:0, y:0 };
-  let joystickPos = { x:0, y:0 };
+      // جهت تصادفی و سرعت
+      const angle = Math.random()*Math.PI*2;
+      const speed = 1 + Math.random();
+      const vx = Math.cos(angle)*speed;
+      const vy = Math.sin(angle)*speed;
 
-  function showEffect(text, className, x, y) {
-    const effect = document.createElement('div');
-    effect.textContent = text;
-    effect.className = `effect ${className}`;
-    effect.style.left = x + 'px';
-    effect.style.top = y + 'px';
-    document.body.appendChild(effect);
-    setTimeout(() => effect.remove(), 1000);
-  }
+      // کلیک برای حمله
+      coin.addEventListener('click', e => {
+        if (!canAttack) return;
+        canAttack = false;
+        kills++;
+        info.textContent = `جون: ${lives} | خنثی‌سازی: ${kills}`;
+        coin.remove();
+        setTimeout(() => canAttack = true, attackCooldown);
+        e.stopPropagation();
+      });
 
-  if(isMobile){ joystickContainer.style.display='block';
-    joystickContainer.addEventListener('touchstart', e => { joystickActive=true; const t=e.touches[0]; joystickStart={x:t.clientX,y:t.clientY};});
-    joystickContainer.addEventListener('touchmove', e => { if(!joystickActive)return; e.preventDefault(); const t=e.touches[0]; let dx=t.clientX-joystickStart.x, dy=t.clientY-joystickStart.y; const dist=Math.hypot(dx,dy), max=40; if(dist>max){dx=dx/dist*max;dy=dy/dist*max;} joystickPos={x:dx,y:dy}; joystickStick.style.left=25+dx+'px'; joystickStick.style.top=25+dy+'px';});
-    joystickContainer.addEventListener('touchend',()=>{joystickActive=false;joystickPos={x:0,y:0};joystickStick.style.left='25px';joystickStick.style.top='25px';});
-  }
-
-  canvas.addEventListener('click', e => {
-    if(currentRound==='player' && !gameOver){
-      const now=Date.now(); if(now-lastClickTime<200) return; lastClickTime=now;
-      bossHP-=damagePerClick;
-      showEffect('-'+damagePerClick,'damage',e.clientX,e.clientY);
-      if(bossHP<=0){ bossHP=0; gameOver=true; wins++; localStorage.setItem('wins',wins); winsDisplay.textContent='بردها: '+wins;
-        showEffect('🎉 پیروزی!','win',canvas.offsetLeft+canvas.width/2,canvas.offsetTop+canvas.height/2);
-        setTimeout(()=>{
-          endText.textContent='تو شکستم دادی ولی من برمیگردم! هدف بعدی من ارز و معاملات ارزیه...';
-          endDialog.style.display='block';
-        },500);
+      // حرکت سکه و برخورد
+      function move() {
+        const rect = coin.getBoundingClientRect();
+        let x = rect.left + vx;
+        let y = rect.top + vy;
+        // برخورد با دیواره
+        if (x < 0 || x > window.innerWidth-rect.width) {
+          x = Math.max(0, Math.min(x, window.innerWidth-rect.width));
+        }
+        if (y < 0 || y > window.innerHeight-rect.height) {
+          y = Math.max(0, Math.min(y, window.innerHeight-rect.height));
+        }
+        coin.style.left = x + 'px';
+        coin.style.top = y + 'px';
+        // برخورد با بازیکن
+        const p = player.getBoundingClientRect();
+        const c = coin.getBoundingClientRect();
+        if (p.left < c.right && p.right > c.left && p.top < c.bottom && p.bottom > c.top) {
+          lives--;
+          info.textContent = `جون: ${lives} | خنثی‌سازی: ${kills}`;
+          coin.remove();
+          if (lives <= 0) {
+            alert('باختی! تعداد خنثی‌سازی‌ها: '+kills);
+            location.reload();
+            return;
+          }
+        }
+        requestAnimationFrame(move);
       }
-      updateUI();
+      move();
     }
-  });
 
-  if(!isMobile){ canvas.addEventListener('mousemove', e=>{ const r=canvas.getBoundingClientRect(); playerHeart.x=e.clientX-r.left-playerHeart.size/2; playerHeart.y=e.clientY-r.top-playerHeart.size/2; }); }
+    // ایجاد سکه هر 1.2 ثانیه
+    setInterval(spawnCoin, 1200);
 
-  function spawnCoin(){ const edges=['left','right','top','bottom'], edge=edges[Math.floor(Math.random()*edges.length)]; let x,y,vx,vy,s=3; switch(edge){case'left':x=0;y=Math.random()*canvas.height;vx=s;vy=0;break;case'right':x=canvas.width;y=Math.random()*canvas.height;vx=-s;vy=0;break;case'top':x=Math.random()*canvas.width;y=0;vx=0;vy=s;break;case'bottom':x=Math.random()*canvas.width;y=canvas.height;vx=0;vy=-s;break;} coins.push({x,y,vx,vy,size:20}); }
+    // اندازه‌ صفحه تغییر
+    window.addEventListener('resize', () => { /* اختیاری */ });
 
-  function drawHeart(x,y,size){ ctx.fillStyle='red'; ctx.beginPath(); ctx.moveTo(x+size/2,y+size/5); ctx.bezierCurveTo(x+size/2,y,x,y,x,y+size/3); ctx.bezierCurveTo(x,y+size*2/3,x+size/2,y+size*4/5,x+size/2,y+size); ctx.bezierCurveTo(x+size/2,y+size*4/5,x+size,y+size*2/3,x+size,y+size/3); ctx.bezierCurveTo(x+size,y,x+size/2,y,x+size/2,y+size/5); ctx.fill(); }
-
-  function updateUI(){ hpFill.style.width = (bossHP/56*100)+'%'; livesDisplay.textContent='جان شما: '+playerLives; }
-
-  function resetBattle(){ bossHP=56; playerLives=3; currentRound='enemy'; roundTimer=roundDuration; gameOver=false; coins=[]; endDialog.style.display='none'; infoDisplay.textContent='دور فعلی: حمله هپی کوین سیاه'; updateUI(); }
-
-  function gameLoop(ts){ if(!lastTimestamp) lastTimestamp=ts; const d=ts-lastTimestamp; lastTimestamp=ts;
-    if(!gameOver){ roundTimer-=d; if(roundTimer<=0){ roundTimer=roundDuration; currentRound=currentRound==='enemy'?'player':'enemy'; infoDisplay.textContent=currentRound==='enemy'?'دور فعلی: حمله هپی کوین سیاه':'دور فعلی: حمله شما'; if(currentRound==='player') alert('نوبت شماست! به باس حمله کن!'); }
-      if(currentRound==='enemy'){ if(Math.random()<0.02) spawnCoin(); coins.forEach(c=>{c.x+=c.vx; c.y+=c.vy;}); coins=coins.filter(c=>{ const dx=c.x+c.size/2-(playerHeart.x+playerHeart.size/2), dy=c.y+c.size/2-(playerHeart.y+playerHeart.size/2), dist=Math.hypot(dx,dy); if(dist<c.size/2+playerHeart.size/2){ playerLives--; updateUI(); if(playerLives<=0){ alert('💔 جانات تموم شد! بازی باختی 😢'); resetBattle(); } return false; } return !(c.x<-20||c.x>canvas.width+20||c.y<-20||c.y>canvas.height+20); }); if(isMobile&&joystickActive){ playerHeart.x=Math.max(0,Math.min(canvas.width-playerHeart.size,playerHeart.x+joystickPos.x*0.15)); playerHeart.y=Math.max(0,Math.min(canvas.height-playerHeart.size,playerHeart.y+joystickPos.y*0.15)); } }
-    }
-    ctx.clearRect(0,0,canvas.width,canvas.height); drawHeart(playerHeart.x,playerHeart.y,playerHeart.size); coins.forEach(c=>{ ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(c.x+c.size/2,c.y+c.size/2,c.size/2,0,2*Math.PI); ctx.fill(); }); requestAnimationFrame(gameLoop);
-  }
-
-  resetBattle(); requestAnimationFrame(gameLoop);
-</script></body>
+  </script></body>
 </html>
