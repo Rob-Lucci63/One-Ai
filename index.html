@@ -115,7 +115,7 @@
 
   function updateUI(){ hpFill.style.width = (bossHP/56*100)+'%'; livesDisplay.textContent='جان شما: '+playerLives; }
 
-  function resetBattle(){ bossHP=56; playerLives=3; currentRound='enemy'; roundTimer=roundDuration; gameOver=false; coins=[]; endDialog.style.display='none'; infoDisplay.textContent='دور فعلی: حمله هپی کوین سیاه'; updateUI(); }
+  function resetBattle(){ bossHP=178; playerLives=3; currentRound='enemy'; roundTimer=roundDuration; gameOver=false; coins=[]; endDialog.style.display='none'; infoDisplay.textContent='دور فعلی: حمله هپی کوین سیاه'; updateUI(); }
 
   function gameLoop(ts){ if(!lastTimestamp) lastTimestamp=ts; const d=ts-lastTimestamp; lastTimestamp=ts;
     if(!gameOver){ roundTimer-=d; if(roundTimer<=0){ roundTimer=roundDuration; currentRound=currentRound==='enemy'?'player':'enemy'; infoDisplay.textContent=currentRound==='enemy'?'دور فعلی: حمله هپی کوین سیاه':'دور فعلی: حمله شما'; if(currentRound==='player') alert('نوبت شماست! به باس حمله کن!'); }
