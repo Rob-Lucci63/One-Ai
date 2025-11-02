@@ -1,307 +1,498 @@
-<!-- تغییرات تو style و script انجام شده -->
-<!DOCTYPE html><html lang="fa" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Happy Coin - باس فایت سیاه</title>
-  <style>
-    body {
-      margin: 0; padding: 0; background: #121212; color: #eee;
-      font-family: Tahoma, sans-serif;
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-start; height: 100vh;
-      user-select: none; overflow: hidden;
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Trophy, Book, RotateCcw, ChefHat, Calendar, Volume2, VolumeX } from 'lucide-react';
+
+const EmojiChef = () => {
+  const [score, setScore] = useState(0);
+  const [discovered, setDiscovered] = useState([]);
+  const [selectedEmojis, setSelectedEmojis] = useState([]);
+  const [message, setMessage] = useState('');
+  const [showBook, setShowBook] = useState(false);
+  const [cooking, setCooking] = useState(false);
+  const [cookedDish, setCookedDish] = useState(null);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [challengeComplete, setChallengeComplete] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // دستورات منطقی
+  // ترکیبات سمی - امتیاز کم می‌کنن!
+  const toxicRecipes = {
+    '🥛🍋': { result: '☠️', name: 'مسمومیت غذایی!', points: -30, desc: 'شیر با اسید لیمو منعقد میشه و مسمومیت ایجاد می‌کنه!' },
+    '🥛🍊': { result: '☠️', name: 'معده درد شدید!', points: -25, desc: 'شیر با مرکبات اسیدی باعث دل درد و استفراغ میشه!' },
+    '🐟🥛': { result: '☠️', name: 'ترکیب خطرناک!', points: -40, desc: 'ماهی با شیر واکنش سمی داره و مسمومیت غذایی شدید ایجاد می‌کنه!' },
+    '🍯🧅': { result: '☠️', name: 'واکنش شیمیایی!', points: -35, desc: 'عسل و پیاز واکنش می‌دن و گاز سمی تولید می‌کنن!' },
+    '🥚🐟': { result: '☠️', name: 'ترکیب سمی!', points: -30, desc: 'تخم مرغ خام با ماهی خام باکتری‌های خطرناک دارن!' },
+    '🍌🥛': { result: '☠️', name: 'سنگینی معده!', points: -20, desc: 'موز با شیر هضم سخت و حالت تهوع ایجاد می‌کنه!' },
+    '🍯🥔': { result: '☠️', name: 'قند زیاد!', points: -25, desc: 'عسل با نشاسته سیب زمینی قند خون رو خیلی بالا میبره!' },
+    '🥒🥛': { result: '☠️', name: 'مسمومیت خفیف!', points: -20, desc: 'خیار با شیر باعث سمی شدن معده و اسهال میشه!' },
+    '🍓🥒': { result: '☠️', name: 'ترکیب بد!', points: -15, desc: 'توت فرنگی با خیار باعث مشکلات گوارشی میشه!' },
+    '🍯🦐': { result: '☠️', name: 'آلرژی شدید!', points: -40, desc: 'عسل با میگو واکنش آلرژیک خطرناک ایجاد می‌کنه!' },
+    '☕🍋': { result: '☠️', name: 'اسید معده!', points: -25, desc: 'کافئین با اسید لیمو اسید معده رو خیلی زیاد می‌کنه!' },
+    '🥩🍯': { result: '☠️', name: 'هضم سخت!', points: -30, desc: 'گوشت قرمز با عسل باعث نفخ و گاز شدید میشه!' },
+    '🍫🌶️': { result: '☠️', name: 'سوزش معده!', points: -20, desc: 'شکلات با فلفل تند سوزش معده و درد شدید ایجاد می‌کنه!' },
+    '🍇🥛': { result: '☠️', name: 'مسمومیت!', points: -25, desc: 'انگور با شیر واکنش سمی داره و اسهال می‌ده!' },
+    '🥚🍌': { result: '☠️', name: 'سنگینی معده!', points: -20, desc: 'تخم مرغ با موز هضم خیلی سنگین و حالت تهوع می‌ده!' },
+    '🦐🥑': { result: '☠️', name: 'مشکل گوارشی!', points: -25, desc: 'میگو با آواکادو باعث نفخ و دل درد شدید میشه!' },
+    '🍋🧈': { result: '☠️', name: 'واکنش بد!', points: -15, desc: 'اسید لیمو کره رو فاسد می‌کنه!' },
+    '🍯🍄': { result: '☠️', name: 'خطر مسمومیت!', points: -35, desc: 'عسل با قارچ می‌تونه سمی بشه!' },
+    '🥛🌶️': { result: '☠️', name: 'التهاب شدید!', points: -30, desc: 'شیر با فلفل تند التهاب معده و سوزش ایجاد می‌کنه!' },
+    '🍊🥚': { result: '☠️', name: 'مشکل هضم!', points: -20, desc: 'پرتقال با تخم مرغ باعث سنگینی معده میشه!' }
+  };
+
+  const recipes = {
+    '🍞🧈': { result: '🧈', name: 'نان کره', points: 10, desc: 'نان تازه با کره' },
+    '🍞🥚': { result: '🍳', name: 'نان تخم مرغ', points: 15, desc: 'تخم مرغ با نان' },
+    '🥚🥓': { result: '🍳', name: 'صبحانه کامل', points: 20, desc: 'تخم مرغ و بیکن' },
+    '🍞🥓': { result: '🥪', name: 'ساندویچ بیکن', points: 25, desc: 'بیکن در نان' },
+    '🥚🧈': { result: '🍳', name: 'املت', points: 20, desc: 'تخم مرغ با کره' },
+    '🥞🍯': { result: '🥞', name: 'پنکیک عسلی', points: 30, desc: 'پنکیک با عسل' },
+    '🥞🍓': { result: '🍓', name: 'پنکیک توت فرنگی', points: 35, desc: 'پنکیک با توت' },
+    '🍞🍯': { result: '🍯', name: 'نان عسلی', points: 15, desc: 'عسل روی نان' },
+    '🍅🧀': { result: '🍕', name: 'پیتزا مارگریتا', points: 30, desc: 'گوجه و پنیر' },
+    '🍞🍅': { result: '🍕', name: 'پیتزا ساده', points: 25, desc: 'نان با گوجه' },
+    '🍞🧀': { result: '🥪', name: 'ساندویچ پنیر', points: 20, desc: 'پنیر در نان' },
+    '🍝🍅': { result: '🍝', name: 'پاستا گوجه‌ای', points: 35, desc: 'پاستا با سس گوجه' },
+    '🍝🧀': { result: '🧀', name: 'پاستا پنیری', points: 40, desc: 'پاستا با پنیر' },
+    '🍝🧄': { result: '🍝', name: 'پاستا سیری', points: 35, desc: 'پاستا با سیر' },
+    '🥩🧈': { result: '🥩', name: 'استیک', points: 50, desc: 'گوشت با کره' },
+    '🥩🧄': { result: '🧄', name: 'استیک سیری', points: 55, desc: 'گوشت با سیر' },
+    '🥩🧅': { result: '🧅', name: 'گوشت پیازی', points: 45, desc: 'گوشت با پیاز' },
+    '🐔🍋': { result: '🍋', name: 'مرغ لیمویی', points: 40, desc: 'مرغ با لیمو' },
+    '🐔🧄': { result: '🧄', name: 'مرغ سیری', points: 40, desc: 'مرغ با سیر' },
+    '🐔🌶️': { result: '🌶️', name: 'مرغ تند', points: 45, desc: 'مرغ با فلفل' },
+    '🥩🍞': { result: '🍔', name: 'همبرگر', points: 40, desc: 'گوشت در نان' },
+    '🧀🍞': { result: '🧀', name: 'چیزبرگر', points: 45, desc: 'پنیر در نان' },
+    '🌭🧅': { result: '🌭', name: 'هات داگ', points: 30, desc: 'سوسیس با پیاز' },
+    '🐟🍋': { result: '🍋', name: 'ماهی لیمویی', points: 45, desc: 'ماهی با لیمو' },
+    '🐟🧈': { result: '🧈', name: 'ماهی کره‌ای', points: 40, desc: 'ماهی با کره' },
+    '🦐🧄': { result: '🧄', name: 'میگو سیری', points: 50, desc: 'میگو با سیر' },
+    '🦐🍋': { result: '🍋', name: 'میگو لیمویی', points: 50, desc: 'میگو با لیمو' },
+    '🍚🐟': { result: '🍣', name: 'سوشی', points: 60, desc: 'برنج با ماهی' },
+    '🦞🧈': { result: '🧈', name: 'خرچنگ کره‌ای', points: 65, desc: 'خرچنگ با کره' },
+    '🦑🌶️': { result: '🌶️', name: 'کالاماری تند', points: 55, desc: 'مرکب با فلفل' },
+    '🍚🦐': { result: '🍱', name: 'برنج میگو', points: 50, desc: 'برنج با میگو' },
+    '🍅🥒': { result: '🥗', name: 'سالاد', points: 20, desc: 'گوجه و خیار' },
+    '🍅🧅': { result: '🥗', name: 'سالاد شیرازی', points: 25, desc: 'گوجه و پیاز' },
+    '🥒🧅': { result: '🥗', name: 'سالاد ساده', points: 20, desc: 'خیار و پیاز' },
+    '🍅🌶️': { result: '🌶️', name: 'سالسا', points: 30, desc: 'گوجه و فلفل' },
+    '🥑🍅': { result: '🥑', name: 'گواکامول', points: 35, desc: 'آواکادو با گوجه' },
+    '🥑🧅': { result: '🥑', name: 'آواکادو پیازی', points: 30, desc: 'آواکادو با پیاز' },
+    '🥕🧈': { result: '🥕', name: 'هویج سرخ شده', points: 20, desc: 'هویج با کره' },
+    '🌽🧈': { result: '🌽', name: 'ذرت کره‌ای', points: 25, desc: 'ذرت با کره' },
+    '🍄🧄': { result: '🍄', name: 'قارچ سیری', points: 30, desc: 'قارچ با سیر' },
+    '🍄🧈': { result: '🍄', name: 'قارچ سرخ شده', points: 30, desc: 'قارچ با کره' },
+    '🍚🥚': { result: '🍱', name: 'برنج تخم مرغ', points: 30, desc: 'برنج با تخم مرغ' },
+    '🍚🧈': { result: '🧈', name: 'برنج کره‌ای', points: 25, desc: 'برنج با کره' },
+    '🍚🧄': { result: '🧄', name: 'برنج سیری', points: 30, desc: 'برنج با سیر' },
+    '🍜🥚': { result: '🍜', name: 'رامن', points: 45, desc: 'نودل با تخم مرغ' },
+    '🍜🌶️': { result: '🌶️', name: 'رامن تند', points: 50, desc: 'نودل با فلفل' },
+    '🥟🧄': { result: '🧄', name: 'دامپلینگ سیری', points: 40, desc: 'دامپلینگ با سیر' },
+    '🍚🌶️': { result: '🌶️', name: 'برنج تند', points: 35, desc: 'برنج با فلفل' },
+    '🥔🧈': { result: '🍟', name: 'سیب زمینی سرخ کرده', points: 25, desc: 'سیب زمینی با کره' },
+    '🥔🧂': { result: '🍟', name: 'سیب زمینی نمکی', points: 20, desc: 'سیب زمینی با نمک' },
+    '🌮🥩': { result: '🌮', name: 'تاکو گوشت', points: 40, desc: 'تاکو با گوشت' },
+    '🌮🧀': { result: '🧀', name: 'تاکو پنیری', points: 45, desc: 'تاکو با پنیر' },
+    '🌯🍅': { result: '🍅', name: 'بوریتو', points: 50, desc: 'رپ با گوجه' },
+    '🌯🌶️': { result: '🌶️', name: 'بوریتو تند', points: 55, desc: 'رپ با فلفل' },
+    '🥛🍫': { result: '☕', name: 'شیر کاکائو', points: 20, desc: 'شیر با شکلات' },
+    '🥛🍓': { result: '🍓', name: 'شیک توت فرنگی', points: 25, desc: 'شیر با توت' },
+    '🥛🍌': { result: '🍌', name: 'شیک موز', points: 25, desc: 'شیر با موز' },
+    '🍋🥛': { result: '🍋', name: 'لیموناد شیری', points: 20, desc: 'لیمو با شیر' },
+    '🍓🍌': { result: '🍓', name: 'اسموتی میوه', points: 30, desc: 'توت با موز' },
+    '☕🥛': { result: '☕', name: 'قهوه شیر', points: 20, desc: 'قهوه با شیر' },
+    '🍵🍯': { result: '🍵', name: 'چای عسل', points: 15, desc: 'چای با عسل' },
+    '🍊🥛': { result: '🍊', name: 'شیر پرتقال', points: 25, desc: 'پرتقال با شیر' },
+    '🍯🥛': { result: '🍯', name: 'شیر عسل', points: 30, desc: 'عسل با شیر' },
+    '🍚🥛': { result: '🥛', name: 'شیر برنج', points: 25, desc: 'برنج با شیر' },
+    '🍫🧈': { result: '🍫', name: 'شکلات ذوب شده', points: 35, desc: 'شکلات با کره' },
+    '🍪🥛': { result: '🥛', name: 'کلوچه و شیر', points: 20, desc: 'کلوچه با شیر' },
+    '🧁🍓': { result: '🍓', name: 'کاپ کیک توت', points: 30, desc: 'کاپ کیک با توت' },
+    '🍰🍫': { result: '🍫', name: 'کیک شکلاتی', points: 40, desc: 'کیک با شکلات' },
+    '🍩🍫': { result: '🍫', name: 'دونات شکلاتی', points: 25, desc: 'دونات با شکلات' },
+    '🥧🍎': { result: '🍎', name: 'پای سیب', points: 35, desc: 'پای با سیب' },
+    '🍅🧄': { result: '🥣', name: 'سوپ گوجه', points: 30, desc: 'گوجه با سیر' },
+    '🥕🧅': { result: '🥣', name: 'سوپ سبزیجات', points: 25, desc: 'هویج و پیاز' },
+    '🐔🍜': { result: '🥣', name: 'سوپ مرغ', points: 35, desc: 'مرغ با نودل' },
+    '🧄🧈': { result: '🧄', name: 'سیر سرخ شده', points: 15, desc: 'سیر با کره' },
+    '🧅🧈': { result: '🧅', name: 'پیاز داغ', points: 15, desc: 'پیاز با کره' },
+    '🌶️🧄': { result: '🌶️', name: 'سس تند', points: 20, desc: 'فلفل با سیر' },
+    '🥜🍞': { result: '🥜', name: 'ساندویچ کره بادام', points: 25, desc: 'بادام زمینی در نان' },
+    '🍎🥧': { result: '🍎', name: 'پای سیب', points: 40, desc: 'سیب در پای' },
+    '🍊🍋': { result: '🍊', name: 'آب میوه مرکبات', points: 20, desc: 'پرتقال و لیمو' }
+  };
+
+  const ingredients = [
+    '🍅', '🧀', '🍞', '🥚', '🥓', '🧈', '🥒', '🧅', 
+    '🍚', '🐟', '🥩', '🧄', '🍝', '🥔', '🧂', '🥛', 
+    '🍯', '🍫', '🍓', '🍌', '🌮', '🥜', '🍇', '🌶️', 
+    '🥑', '🥢', '🦐', '🍋', '🐔', '🌭', '🥕', '🌽',
+    '🍄', '🍜', '🥟', '🌯', '☕', '🍵', '🍊', '🍪',
+    '🧁', '🍰', '🍩', '🥧', '🍎', '🥞', '🦞', '🦑'
+  ];
+
+  useEffect(() => {
+    const saved = localStorage.getItem('emojiChefData');
+    if (saved) {
+      const data = JSON.parse(saved);
+      setScore(data.score || 0);
+      setDiscovered(data.discovered || []);
+      setSoundEnabled(data.soundEnabled !== false);
     }
-    h1 { margin-top: 10px; font-size: 24px; }
-    #battleCanvas {
-      background: #222; border-radius: 10px;
-      margin-top: 20px; touch-action: none;
+    loadDailyChallenge();
+  }, []);
+
+  useEffect(() => {
+    const data = { score, discovered, soundEnabled };
+    localStorage.setItem('emojiChefData', JSON.stringify(data));
+  }, [score, discovered, soundEnabled]);
+
+  const loadDailyChallenge = () => {
+    const today = new Date().toDateString();
+    const savedChallenge = localStorage.getItem('dailyChallenge');
+    const savedDate = localStorage.getItem('challengeDate');
+    
+    if (savedDate === today && savedChallenge) {
+      const challenge = JSON.parse(savedChallenge);
+      setDailyChallenge(challenge);
+      setChallengeComplete(challenge.completed || false);
+    } else {
+      const challenges = Object.keys(recipes);
+      const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+      const newChallenge = {
+        key: randomChallenge,
+        recipe: recipes[randomChallenge],
+        completed: false
+      };
+      setDailyChallenge(newChallenge);
+      setChallengeComplete(false);
+      localStorage.setItem('dailyChallenge', JSON.stringify(newChallenge));
+      localStorage.setItem('challengeDate', today);
     }
+  };
 
-    /* نوار جون بزرگ‌تر و شفاف‌تر */
-    #hpBar {
-      width: 400px; height: 30px;
-      background: #444; border-radius: 15px;
-      overflow: hidden; margin-top: 15px;
-      border: 2px solid #fff;
-    }
-    #hpFill {
-      height: 100%; background: linear-gradient(to right, #ff3c3c, #ff0000);
-      width: 100%; transition: width 0.3s ease;
-    }
-
-    #livesDisplay, #winsDisplay, #info {
-      margin-top: 10px; font-size: 16px; user-select: none;
-    }
-
-    .effect {
-      position: absolute; font-size: 24px; font-weight: bold;
-      opacity: 1; animation: fadeUp 1s ease-out forwards;
-      pointer-events: none; z-index: 9999;
-    }
-    .damage { color: #f44; }
-    .win { color: #ffd700; font-size: 32px; }
-
-    @keyframes fadeUp {
-      0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -100%) scale(1.5); }
-    }
-
-    #endDialog {
-      position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: #333; color: #fff; padding: 20px;
-      border-radius: 10px; display: none; text-align: center;
-      z-index: 10000;
-    }
-    #endDialog button {
-      margin-top: 10px; padding: 8px 16px;
-      background: #f44; color: #fff; border: none;
-      border-radius: 5px; cursor: pointer;
-    }
-
-    #joystickContainer {
-      position: fixed; bottom: 40px; left: 40px;
-      width: 100px; height: 100px;
-      background: #444a; border-radius: 50%;
-      touch-action: none; display: none; z-index: 1000;
-    }
-    #joystickBase {
-      position: relative; width: 100%; height: 100%;
-      border-radius: 50%; background: #666;
-    }
-    #joystickStick {
-      position: absolute; width: 50px; height: 50px;
-      background: #f44; border-radius: 50%;
-      top: 25px; left: 25px;
-      transition: top 0.1s, left 0.1s; touch-action: none;
-    }
-  </style>
-</head>
-<body>
-  <h1>باس فایت Happy Coin سیاه</h1>
-  <canvas id="battleCanvas"></canvas>
-  <div id="hpBar"><div id="hpFill"></div></div>
-  <div id="livesDisplay">جان شما: 3</div>
-  <div id="winsDisplay">بردها: 0</div>
-  <div id="info">دور فعلی: حمله هپی کوین سیاه</div>
-
-  <div id="endDialog">
-    <div id="endText"></div>
-    <button onclick="resetBattle()">شروع مجدد</button>
-  </div>
-
-  <div id="joystickContainer">
-    <div id="joystickBase"><div id="joystickStick"></div></div>
-  </div>
-
-<script>
-const canvas = document.getElementById('battleCanvas');
-const ctx = canvas.getContext('2d');
-const hpFill = document.getElementById('hpFill');
-const livesDisplay = document.getElementById('livesDisplay');
-const winsDisplay = document.getElementById('winsDisplay');
-const infoDisplay = document.getElementById('info');
-const endDialog = document.getElementById('endDialog');
-const endText = document.getElementById('endText');
-
-function resizeCanvas(){
-  const size = Math.min(window.innerWidth - 40, 400);
-  canvas.width = size;
-  canvas.height = size;
-  document.getElementById('hpBar').style.width = size + 'px';
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-let playerHeart = { x: 0, y: 0, size: 20 };
-let coins = [];
-let bossHP = 300;
-let playerLives = 3;
-let damagePerClick = 4;
-const roundDuration = 15000;
-let currentRound = 'enemy';
-let roundTimer = roundDuration;
-let lastTimestamp = null;
-let gameOver = false;
-let lastClickTime = 0;
-let wins = parseInt(localStorage.getItem('wins') || '0');
-winsDisplay.textContent = 'بردها: ' + wins;
-
-const joystickContainer = document.getElementById('joystickContainer');
-const joystickStick = document.getElementById('joystickStick');
-let joystickActive = false;
-let joystickStart = { x:0, y:0 };
-let joystickPos = { x:0, y:0 };
-
-function showEffect(text, className, x, y) {
-  const effect = document.createElement('div');
-  effect.textContent = text;
-  effect.className = `effect ${className}`;
-  effect.style.left = x + 'px';
-  effect.style.top = y + 'px';
-  document.body.appendChild(effect);
-  setTimeout(() => effect.remove(), 1000);
-}
-
-if(isMobile){
-  joystickContainer.style.display = 'block';
-  joystickContainer.addEventListener('touchstart', e => {
-    joystickActive = true;
-    const t = e.touches[0];
-    joystickStart = { x: t.clientX, y: t.clientY };
-  });
-  joystickContainer.addEventListener('touchmove', e => {
-    if(!joystickActive) return;
-    e.preventDefault();
-    const t = e.touches[0];
-    let dx = t.clientX - joystickStart.x;
-    let dy = t.clientY - joystickStart.y;
-    const dist = Math.hypot(dx, dy);
-    const max = 40;
-    if(dist > max){ dx = dx / dist * max; dy = dy / dist * max; }
-    joystickPos = { x: dx, y: dy };
-    joystickStick.style.left = 25 + dx + 'px';
-    joystickStick.style.top = 25 + dy + 'px';
-  });
-  joystickContainer.addEventListener('touchend', () => {
-    joystickActive = false;
-    joystickPos = { x: 0, y: 0 };
-    joystickStick.style.left = '25px';
-    joystickStick.style.top = '25px';
-  });
-}
-
-canvas.addEventListener('click', e => {
-  if(currentRound === 'player' && !gameOver){
-    const now = Date.now();
-    if(now - lastClickTime < 200) return;
-    lastClickTime = now;
-    bossHP -= damagePerClick;
-    showEffect('-' + damagePerClick, 'damage', e.clientX, e.clientY);
-    if(bossHP <= 0){
-      bossHP = 0;
-      gameOver = true;
-      wins++;
-      localStorage.setItem('wins', wins);
-      winsDisplay.textContent = 'بردها: ' + wins;
-      showEffect('🎉 پیروزی!', 'win', canvas.offsetLeft + canvas.width/2, canvas.offsetTop + canvas.height/2);
-      setTimeout(() => {
-        endText.textContent = 'تو شکستم دادی ولی من برمیگردم! هدف بعدی من ارز و معاملات ارزیه...';
-        endDialog.style.display = 'block';
-      }, 500);
-    }
-    updateUI();
-  }
-});
-
-if(!isMobile){
-  canvas.addEventListener('mousemove', e => {
-    const r = canvas.getBoundingClientRect();
-    playerHeart.x = e.clientX - r.left - playerHeart.size/2;
-    playerHeart.y = e.clientY - r.top - playerHeart.size/2;
-  });
-}
-
-function spawnCoin(){
-  const edges = ['left','right','top','bottom'];
-  const edge = edges[Math.floor(Math.random()*edges.length)];
-  let x, y, vx, vy, s = 4;
-  switch(edge){
-    case 'left': x = 0; y = Math.random() * canvas.height; vx = s; vy = 0; break;
-    case 'right': x = canvas.width; y = Math.random() * canvas.height; vx = -s; vy = 0; break;
-    case 'top': x = Math.random() * canvas.width; y = 0; vx = 0; vy = s; break;
-    case 'bottom': x = Math.random() * canvas.width; y = canvas.height; vx = 0; vy = -s; break;
-  }
-  coins.push({ x, y, vx, vy, size: 20 });
-}
-
-function drawHeart(x, y, size){
-  ctx.fillStyle = 'red';
-  ctx.beginPath();
-  ctx.moveTo(x + size/2, y + size/5);
-  ctx.bezierCurveTo(x + size/2, y, x, y, x, y + size/3);
-  ctx.bezierCurveTo(x, y + size*2/3, x + size/2, y + size*4/5, x + size/2, y + size);
-  ctx.bezierCurveTo(x + size/2, y + size*4/5, x + size, y + size*2/3, x + size, y + size/3);
-  ctx.bezierCurveTo(x + size, y, x + size/2, y, x + size/2, y + size/5);
-  ctx.fill();
-}
-
-function updateUI(){
-  hpFill.style.width = (bossHP / 300 * 100) + '%';
-  livesDisplay.textContent = 'جان شما: ' + playerLives;
-}
-
-function resetBattle(){
-  bossHP = 300;
-  playerLives = 3;
-  currentRound = 'enemy';
-  roundTimer = roundDuration;
-  gameOver = false;
-  coins = [];
-  endDialog.style.display = 'none';
-  infoDisplay.textContent = 'دور فعلی: حمله هپی کوین سیاه';
-  updateUI();
-}
-
-function gameLoop(ts){
-  if(!lastTimestamp) lastTimestamp = ts;
-  const d = ts - lastTimestamp;
-  lastTimestamp = ts;
-
-  if(!gameOver){
-    roundTimer -= d;
-    if(roundTimer <= 0){
-      roundTimer = roundDuration;
-      currentRound = currentRound === 'enemy' ? 'player' : 'enemy';
-      infoDisplay.textContent = currentRound === 'enemy' ? 'دور فعلی: حمله هپی کوین سیاه' : 'دور فعلی: حمله شما';
-      if(currentRound === 'player') alert('نوبت شماست! به باس حمله کن!');
-    }
-
-    if(currentRound === 'enemy'){
-      if(Math.random() < 0.03) spawnCoin();
-      coins.forEach(c => {
-        c.x += c.vx;
-        c.y += c.vy;
-      });
-
-      coins = coins.filter(c => {
-        const dx = c.x + c.size/2 - (playerHeart.x + playerHeart.size/2);
-        const dy = c.y + c.size/2 - (playerHeart.y + playerHeart.size/2);
-        const dist = Math.hypot(dx, dy);
-        if(dist < c.size/2 + playerHeart.size/2){
-          playerLives--;
-          updateUI();
-          if(playerLives <= 0){
-            alert('💔 جانات تموم شد! بازی باختی 😢');
-            resetBattle();
-          }
-          return false;
-        }
-        return !(c.x < -20 || c.x > canvas.width + 20 || c.y < -20 || c.y > canvas.height + 20);
-      });
-
-      if(isMobile && joystickActive){
-        playerHeart.x = Math.max(0, Math.min(canvas.width - playerHeart.size, playerHeart.x + joystickPos.x * 0.15));
-        playerHeart.y = Math.max(0, Math.min(canvas.height - playerHeart.size, playerHeart.y + joystickPos.y * 0.15));
+  const playSound = (type) => {
+    if (!soundEnabled) return;
+    
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      if (type === 'click') {
+        oscillator.frequency.value = 400;
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      } else if (type === 'cooking') {
+        oscillator.frequency.value = 200;
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        oscillator.start();
+        oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } else if (type === 'success') {
+        const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, i) => {
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.3);
+          osc.start(audioContext.currentTime + i * 0.1);
+          osc.stop(audioContext.currentTime + i * 0.1 + 0.3);
+        });
       }
+    } catch (error) {
+      console.log('صدا پخش نشد');
     }
-  }
+  };
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawHeart(playerHeart.x, playerHeart.y, playerHeart.size);
-  coins.forEach(c => {
-    ctx.fillStyle = '#ffd700';
-    ctx.beginPath();
-    ctx.arc(c.x + c.size/2, c.y + c.size/2, c.size/2, 0, 2 * Math.PI);
-    ctx.fill();
-  });
-  requestAnimationFrame(gameLoop);
-}
+  const findBestRecipe = (emojis) => {
+    const key = emojis.join('');
+    const reversed = [emojis[1], emojis[0]].join('');
+    
+    // اول چک می‌کنیم سمی هست؟
+    if (toxicRecipes[key]) return { ...toxicRecipes[key], toxic: true };
+    if (toxicRecipes[reversed]) return { ...toxicRecipes[reversed], toxic: true };
+    
+    // بعد چک می‌کنیم دستور عادی هست؟
+    if (recipes[key]) return recipes[key];
+    if (recipes[reversed]) return recipes[reversed];
+    
+    // اگه هیچکدوم نبود، یه ترکیب سمی عمومی میدیم
+    return {
+      result: '☠️',
+      name: 'ترکیب نامعقول!',
+      points: -15,
+      desc: `${emojis[0]} با ${emojis[1]} هیچ ربطی به هم ندارن! این غذا قابل خوردن نیست!`,
+      toxic: true
+    };
+  };
 
-resetBattle();
-requestAnimationFrame(gameLoop);
-</script>
-</body>
-</html>
+  const handleEmojiClick = (emoji) => {
+    playSound('click');
+    if (selectedEmojis.length < 2) {
+      setSelectedEmojis([...selectedEmojis, emoji]);
+    }
+  };
+
+  const checkRecipe = () => {
+    if (selectedEmojis.length === 0) return;
+
+    setCooking(true);
+    setMessage('');
+    playSound('cooking');
+
+    setTimeout(() => {
+      const recipe = findBestRecipe(selectedEmojis);
+      const key = selectedEmojis.join('');
+      
+      setCookedDish(recipe);
+      
+      // اگه سمی بود
+      if (recipe.toxic) {
+        const newScore = Math.max(0, score + recipe.points); // نمیذاریم منفی بشه
+        setScore(newScore);
+        setMessage(`☠️ ${recipe.name} ${recipe.points} امتیاز کم شد!`);
+        playSound('click'); // صدای ارور
+        
+        setCooking(false);
+        setTimeout(() => {
+          setCookedDish(null);
+          setMessage('');
+        }, 4000); // 4 ثانیه نشون میده
+        setSelectedEmojis([]);
+        return;
+      }
+      
+      // اگه غذای خوب بود
+      const alreadyDiscovered = discovered.find(d => d.name === recipe.name);
+      
+      if (!alreadyDiscovered) {
+        setDiscovered([...discovered, { ...recipe, key }]);
+        setScore(score + recipe.points);
+        setMessage(`🎉 دستور جدید: ${recipe.name}! +${recipe.points} امتیاز`);
+        playSound('success');
+      } else {
+        setMessage(`✅ ${recipe.name} ساختی!`);
+        playSound('success');
+      }
+
+      if (dailyChallenge && !challengeComplete) {
+        const challengeKey = dailyChallenge.key;
+        if (key === challengeKey || key === challengeKey.split('').reverse().join('')) {
+          setChallengeComplete(true);
+          setScore(score + recipe.points + 100);
+          setMessage(`🏆 چالش روزانه کامل شد! +${recipe.points + 100} امتیاز!`);
+          const updated = { ...dailyChallenge, completed: true };
+          setDailyChallenge(updated);
+          localStorage.setItem('dailyChallenge', JSON.stringify(updated));
+        }
+      }
+
+      setCooking(false);
+      setTimeout(() => {
+        setCookedDish(null);
+        setMessage('');
+      }, 3000);
+    }, 1500);
+
+    setSelectedEmojis([]);
+  };
+
+  const reset = () => {
+    setSelectedEmojis([]);
+    setMessage('');
+    setCookedDish(null);
+  };
+
+  const resetProgress = () => {
+    if (window.confirm('همه پیشرفتت پاک میشه! مطمئنی؟')) {
+      setScore(0);
+      setDiscovered([]);
+      localStorage.removeItem('emojiChefData');
+      playSound('click');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 p-4" style={{fontFamily: 'Tahoma, Arial, sans-serif'}}>
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-yellow-500" size={32} />
+              <h1 className="text-3xl font-bold text-gray-800">آشپز ایموجی</h1>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition"
+              >
+                {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+              </button>
+              <button
+                onClick={() => setShowBook(!showBook)}
+                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+              >
+                <Book size={20} />
+                دفترچه
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="text-yellow-500" size={24} />
+              <span className="text-xl font-bold text-gray-700">امتیاز: {score}</span>
+            </div>
+            <div className="text-lg text-gray-600">
+              کشف شده: {discovered.length}/{Object.keys(recipes).length}
+            </div>
+          </div>
+        </div>
+
+        {dailyChallenge && (
+          <div className={`rounded-2xl shadow-lg p-6 mb-4 ${challengeComplete ? 'bg-green-100' : 'bg-purple-100'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className={challengeComplete ? 'text-green-600' : 'text-purple-600'} size={24} />
+                <h3 className="text-xl font-bold text-gray-800">چالش امروز</h3>
+              </div>
+              {challengeComplete && <span className="text-2xl">✅</span>}
+            </div>
+            {!challengeComplete ? (
+              <p className="text-gray-700">
+                <span className="font-bold">{dailyChallenge.recipe.name}</span> بساز و <span className="font-bold text-purple-600">+100 امتیاز</span> بونوس بگیر!
+              </p>
+            ) : (
+              <p className="text-green-700 font-bold">🎉 چالش امروز کامل شد! فردا دوباره برگرد!</p>
+            )}
+          </div>
+        )}
+
+        {showBook && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">📖 دفترچه دستورات</h2>
+              <button onClick={resetProgress} className="text-red-500 text-sm hover:text-red-700">
+                پاک کردن پیشرفت
+              </button>
+            </div>
+            {discovered.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">هنوز چیزی کشف نکردی! شروع کن!</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {discovered.map((dish, i) => (
+                  <div key={i} className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
+                    <div className="text-4xl mb-2 text-center">{dish.result}</div>
+                    <div className="text-sm font-bold text-center text-gray-700">{dish.name}</div>
+                    <div className="text-xs text-center text-gray-500">{dish.points} امتیاز</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+          <h2 className="text-xl font-bold mb-4 text-gray-700 text-center">🥘 ظرف پخت</h2>
+          
+          <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-8 min-h-32 flex flex-col items-center justify-center gap-3 border-4 border-dashed border-orange-300 relative overflow-hidden">
+            {cooking && (
+              <div className="absolute inset-0 bg-orange-400 opacity-20 animate-pulse"></div>
+            )}
+            
+            {cooking ? (
+              <div className="flex flex-col items-center gap-3">
+                <ChefHat className="text-orange-500 animate-bounce" size={48} />
+                <p className="text-2xl font-bold text-orange-700 animate-pulse">در حال پخت... 👨‍🍳</p>
+              </div>
+            ) : cookedDish ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className={`text-8xl ${cookedDish.toxic ? 'animate-ping' : 'animate-bounce'}`}>
+                  {cookedDish.result}
+                </div>
+                <p className={`text-2xl font-bold ${cookedDish.toxic ? 'text-red-700' : 'text-green-700'}`}>
+                  {cookedDish.name}
+                </p>
+                <p className={`text-sm ${cookedDish.toxic ? 'text-red-600' : 'text-gray-600'} text-center px-4`}>
+                  {cookedDish.desc}
+                </p>
+                <p className={`text-lg font-bold ${cookedDish.toxic ? 'text-red-700 animate-pulse' : 'text-gray-600'}`}>
+                  {cookedDish.toxic ? `${cookedDish.points} امتیاز` : `+${cookedDish.points} امتیاز`}
+                </p>
+              </div>
+            ) : selectedEmojis.length === 0 ? (
+              <p className="text-gray-400 text-lg">مواد اولیه رو انتخاب کن!</p>
+            ) : (
+              selectedEmojis.map((emoji, i) => (
+                <span key={i} className="text-6xl animate-bounce" style={{animationDelay: `${i * 0.1}s`}}>
+                  {emoji}
+                </span>
+              ))
+            )}
+          </div>
+
+          {message && (
+            <div className={`mt-4 p-4 rounded-lg text-center font-bold ${
+              message.includes('🎉') || message.includes('🏆') ? 'bg-green-100 text-green-800' :
+              message.includes('☠️') ? 'bg-red-100 text-red-800 animate-pulse' :
+              message.includes('❌') ? 'bg-red-100 text-red-800' :
+              'bg-blue-100 text-blue-800'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={checkRecipe}
+              disabled={selectedEmojis.length === 0 || cooking}
+              className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            >
+              {cooking ? '🔥 در حال پخت...' : 'بپز! 👨‍🍳'}
+            </button>
+            <button
+              onClick={reset}
+              disabled={cooking}
+              className="bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition disabled:bg-gray-300"
+            >
+              <RotateCcw size={24} />
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-700 text-center">🧺 مواد اولیه ({ingredients.length} نوع)</h2>
+          <div className="grid grid-cols-6 gap-2 max-h-96 overflow-y-auto">
+            {ingredients.map((emoji, i) => (
+              <button
+                key={i}
+                onClick={() => handleEmojiClick(emoji)}
+                disabled={selectedEmojis.length >= 2 || cooking}
+                className="text-5xl p-3 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl hover:scale-110 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed border-2 border-gray-200 hover:border-orange-300"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-gray-500 text-center mt-4">
+            💡 نکته: ترکیبات منطقی امتیاز میدن، ترکیبات سمی امتیاز کم می‌کنن!
+          </p>
+        </div>
+
+        <div className="text-center mt-6 text-gray-500 text-sm">
+          ساخته شده توسط Rob Lucci ❤️ | نسخه 2.0
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EmojiChef;
